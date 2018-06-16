@@ -1,0 +1,15 @@
+
+
+header h1{
+    text-align: center;
+}
+
+.button-wrapper{
+    margin: auto;
+    width: fit-content;
+}
+
+.flip-clock-wrapper{
+    margin: auto !important;
+    width: fit-content;
+}
