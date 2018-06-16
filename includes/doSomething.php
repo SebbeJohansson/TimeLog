@@ -38,6 +38,5 @@
     }else{
 
     }
-
-
+    echo json_encode($timelog->response);
 
