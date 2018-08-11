@@ -32,6 +32,9 @@
             case 'getlogs':
                 $timelog->getTimelogs();
                 break;
+            case 'setnotedata':
+                $timelog->setNoteData($_POST['note'], $_POST['logid']);
+                break;
             default:
                 break;
         }

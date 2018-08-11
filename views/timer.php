@@ -10,6 +10,13 @@
             <div class="your-clock"></div>
         </section>
     </section>
+
+    <section class="row justify-content-center">
+        <section class="w-75 text-center">
+            <label for="note" class="font-weight-bold">Note:</label>
+            <textarea class="form-control" rows="5" id="note" title="Note"></textarea>
+        </section>
+    </section>
 </section>
 
 <script>

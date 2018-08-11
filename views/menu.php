@@ -12,7 +12,7 @@
 
 ?>
 
-<nav class="navbar navbar-expand-sm bg-dark navbar-dark row">
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark w-100">
     <ul class="navbar-nav col-8 justify-content-center ml-2">
         <li class="nav-item <?php if ($page == "") echo "active"; ?>">
             <a class="nav-link" href="?">Home</a>

@@ -18,6 +18,8 @@
                 starttime DATETIME NOT NULL,
                 endtime DATETIME NOT NULL,
                 finished BIT NOT NULL,
+                note VARCHAR(255) NULL DEFAULT NULL,
+                PRIMARY KEY (id),
                 INDEX user (user),
                 CONSTRAINT user FOREIGN KEY (user) REFERENCES users (id) ON UPDATE CASCADE
             )";
@@ -128,7 +130,7 @@
                 $running = false;
                 // Either start a new timer or stop the one already running.
 
-                // Gets all not finished timers for user.
+                // Gets all unfinished timers for user.
                 $sql = "SELECT * FROM timelogs WHERE user = :userid AND finished = 0";
 
                 $this->db->query($sql);
@@ -156,6 +158,11 @@
                     $this->db->query($sql);
                     $this->db->execute(['userid' => $userid, 'starttime' => $currentDateTime]);
                     $this->setSuccessful(true);
+                    $sql = "SELECT * FROM timelogs WHERE user = :userid AND finished = 0";
+                    $this->db->query($sql);
+                    $this->db->execute(['userid' => $userid]);
+                    $result = $this->db->resultSingle();
+                    $this->addVariable("logid", $result['id']);
                     $this->setStatusMessage("Started a timer.");
                 }
 
@@ -186,6 +193,8 @@
                     if($this->db->rowCount() == 1) {
                         $this->setStatusMessage("timer was found.");
                         $this->addVariable("timervalue", $timediff);
+                        $this->addVariable("logid", $result['id']);
+                        $this->addVariable("note", $result['note']);
                         $this->setSuccessful(true);
                     }
                     else {
@@ -202,16 +211,16 @@
         }
 
         function getTimelogs(){
-            $output = "<table class='table'>";
-
+            $output = "<table class='table table-striped table-hover'>";
+            $boolspretty = array('No','Yes');
             $sql = "SELECT logs.id, logs.user, users.username, logs.starttime, logs.endtime, logs.finished FROM timelogs logs JOIN users users ON logs.user = users.id ORDER BY logs.starttime DESC";
 
             $this->db->query($sql);
             $this->db->execute();
-            $logs = $this->db->resultAssoc();
+            $logs = $this->db->resultAll();
 
 
-            $output .= "<thead><tr>";
+            $output .= "<thead class='thead-dark'><tr>";
             foreach(array_keys($logs[0]) as $key){
                 $output .= "<th>$key</th>";
             }
@@ -221,7 +230,8 @@
             foreach($logs as $log){
                 $output .= "<tr>";
                 foreach($log as $key => $value){
-                    $output .= "<td>$value</td>";
+                    $value = (in_array($key, array('finished'))) ? $boolspretty[(int)$value] : $value;
+                    $output .= "<td>".$value."</td>";
                 }
                 $output .= "</tr>";
             }
@@ -234,20 +244,21 @@
 
         function getUserStats(){
             $userid = $_SESSION['user_id'];
-            $output = "<table class='table'>";
+            $output = "<table class='table table-striped table-hover'>";
 
-            $sql = "SELECT logs.id, logs.user, users.username, logs.starttime, logs.endtime, logs.finished FROM timelogs logs JOIN users users ON logs.user = users.id WHERE logs.user = :userid ORDER BY logs.starttime DESC";
+            $sql = "SELECT logs.id, logs.user, users.username, logs.starttime, logs.endtime, logs.finished, logs.note FROM timelogs logs JOIN users users ON logs.user = users.id WHERE logs.user = :userid ORDER BY logs.starttime DESC";
 
             $this->db->query($sql);
             $this->db->execute(['userid' => $userid]);
-            $logs = $this->db->resultAssoc();
+            $logs = $this->db->resultAll();
 
 
-            $output .= "<thead><tr>";
+            $output .= "<thead class='thead-dark'><tr>";
 
             $output .= "<th>Start Time</th>";
             $output .= "<th>End Time</th>";
             $output .= "<th>Total Time</th>";
+            $output .= "<th>Note</th>";
 
             $output .= "</tr></thead>";
 
@@ -257,11 +268,11 @@
 
                 $starttime = $log['starttime'];
                 $endtime = $log['endtime'];
+                $note = $log['note'];
                 $startDateTime = new DateTime($starttime);
                 $endDateTime = new DateTime($endtime);
                 if($log['finished']){
-                    $timediff = $endDateTime->getTimestamp() - $startDateTime->getTimestamp();
-                    $timediff .= ""." seconds";
+                    $timediff = $endDateTime->getTimestamp() - $startDateTime->getTimestamp().""." seconds";
                 }else{
                     $timediff = "Not Finished.";
                     $endtime = "Not Finished.";
@@ -271,6 +282,7 @@
                 $output .= "<td>$starttime</td>";
                 $output .= "<td>$endtime</td>";
                 $output .= "<td>$timediff</td>";
+                $output .= "<td style='width: 42%'>$note</td>";
 
                 $output .= "</tr>";
             }
@@ -280,6 +292,51 @@
             $this->setSuccessful(true);
             $this->addVariable("output", $output);
 
+        }
+
+        function setNoteData($note = null, $logid = null){
+            $userid = $_SESSION['user_id'];
+
+
+
+
+            if((isset($note) && $note != null)){
+
+                if(isset($logid) && $logid != null && is_int($logid)){
+
+                    $sql = "UPDATE timelogs SET note = :note WHERE user=:userid AND id = :id";
+
+                    $this->db->query($sql);
+                    $this->db->execute(['note' => $note, 'userid' => $userid, 'id' => $logid]);
+
+                    $this->response['successful'] = true;
+                    $this->response['statusmessage'] = "Note was successfully saved to log ".$logid."!";
+                }else{
+                    // Gets all not finished timers for user.
+                    $sql = "SELECT id FROM timelogs WHERE user = :userid AND finished = 0";
+
+                    $this->db->query($sql);
+                    $this->db->execute(['userid' => $userid]);
+
+                    if($this->db->rowCount() == 1) {
+                        $logid = $this->db->resultSingle()['id'];
+
+                        $sql = "UPDATE timelogs SET note = :note WHERE user=:userid AND id = :id";
+
+                        $this->db->query($sql);
+                        $this->db->execute(['note' => $note, 'userid' => $userid, 'id' => $logid]);
+
+                        $this->response['successful'] = true;
+                        $this->response['statusmessage'] = "Note was successfully saved to current log (id = ".$logid.").";
+                    }else{
+                        $this->response['successful'] = false;
+                        $this->response['statusmessage'] = "No running log was found. - PS: This shouldnt happen.";
+                    }
+                }
+            }else{
+                $this->response['successful'] = false;
+                $this->response['statusmessage'] = "No note was found. No note saved.";
+            }
         }
 
 

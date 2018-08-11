@@ -42,7 +42,7 @@ class dbClass{
         return $this->stmt->execute($arr);
     }
 
-    public function resultAssoc(){
+    public function resultAll(){
         return $this->stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
